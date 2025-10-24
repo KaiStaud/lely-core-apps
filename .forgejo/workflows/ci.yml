@@ -10,6 +10,15 @@ jobs:
       image: ubuntu:24.04
 
     steps:
+      - name: Install Node.js and dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -y
+          apt-get install -y --no-install-recommends curl ca-certificates gnupg
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y --no-install-recommends nodejs
+          node -v
+          npm -v
       - uses: https://code.forgejo.org/actions/checkout@v3
       - name: Update & Install Dependencies
         run: |
