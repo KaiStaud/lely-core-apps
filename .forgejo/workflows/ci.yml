@@ -31,7 +31,24 @@ jobs:
             liblely-coapp-dev \
             liblely-co-tools \
             python3-dcf-tools
-            
+
+      - name: generate master.dcf
+        run: | 
+          dcfgen -r cpp-tutorial.yml 
+          ls -la
+      - name: Compile canopen controller
+        run: | 
+          g++ -std=c++14 -Wall -Wextra -pedantic -g -O2 \
+            $(pkg-config --cflags liblely-coapp) \
+            master.cpp -o master \
+            $(pkg-config --libs liblely-coapp)     
+      - name: Compile canopen device
+        run: |
+          g++ -std=c++14 -Wall -Wextra -pedantic -g -O2 \
+            $(pkg-config --cflags liblely-coapp) \
+            slave.cpp -o slave \
+            $(pkg-config --libs liblely-coapp)
+
       - name: Test Runner
         run: |
           echo "Running in Ubuntu Noble Docker container"
