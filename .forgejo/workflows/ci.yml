@@ -1,3 +1,8 @@
+# Datei: .forgejo/workflows/test.yml
+name: Runner Test
+
+on: [push]
+      
 jobs:
   build:
     runs-on: docker
@@ -7,12 +12,26 @@ jobs:
     steps:
       - name: Update & Install Dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
+          export TZ=Etc/UTC
+
           apt-get update -y
-          apt-get install -y software-properties-common
+          apt-get install -y --no-install-recommends software-properties-common
+
           add-apt-repository -y ppa:lely/ppa
           apt-get update -y
-          apt-get install -y liblely-coapp-dev liblely-co-tools python3-dcf-tools
 
+          # Verhindert tzdata-Prompt
+          ln -fs /usr/share/zoneinfo/$TZ /etc/localtime
+          apt-get install -y --no-install-recommends tzdata
+          dpkg-reconfigure -f noninteractive tzdata
+
+          # Jetzt deine Pakete
+          apt-get install -y --no-install-recommends \
+            liblely-coapp-dev \
+            liblely-co-tools \
+            python3-dcf-tools
+            
       - name: Test Runner
         run: |
           echo "Running in Ubuntu Noble Docker container"
