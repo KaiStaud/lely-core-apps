@@ -36,7 +36,7 @@ jobs:
           export TZ=Etc/UTC
 
           apt-get update -y
-          apt-get install -y --no-install-recommends software-properties-common
+          apt-get install -y --no-install-recommends software-properties-common g++ pkg-config
 
           add-apt-repository -y ppa:lely/ppa
           apt-get update -y
