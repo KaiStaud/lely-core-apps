@@ -10,16 +10,26 @@ jobs:
       image: ubuntu:24.04
 
     steps:
-      - name: Install Node.js and dependencies
+      - name: Prepare environment
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update -y
-          apt-get install -y --no-install-recommends curl ca-certificates gnupg
+          apt-get install -y --no-install-recommends \
+            curl ca-certificates git gnupg software-properties-common
+
+          # Node.js installieren (für Forgejo Actions)
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y --no-install-recommends nodejs
           node -v
           npm -v
-      - uses: https://code.forgejo.org/actions/checkout@v3
+          git --version
+
+          # Forgejo-Zertifikate aktualisieren (wichtig!)
+          update-ca-certificates
+
+      - name: Checkout Repository
+        uses: https://code.forgejo.org/actions/checkout@v3
+
       - name: Update & Install Dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
