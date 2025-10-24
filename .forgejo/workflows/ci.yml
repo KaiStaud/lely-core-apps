@@ -10,6 +10,7 @@ jobs:
       image: ubuntu:24.04
 
     steps:
+      - uses: https://code.forgejo.org/actions/checkout@v3
       - name: Update & Install Dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
