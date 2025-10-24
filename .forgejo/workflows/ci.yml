@@ -1,0 +1,21 @@
+# Datei: .forgejo/workflows/test.yml
+name: Runner Test
+
+on: [push]
+
+jobs:
+  hello:
+    runs-on: docker
+#    container:
+#      image: alpine:latest
+
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v3
+
+      - name: Test Runner
+        run: |
+          echo "Forgejo runner is working!"
+          uname -a
+          echo "Repository contents:"
+          ls -la
+
