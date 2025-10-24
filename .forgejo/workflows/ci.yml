@@ -1,21 +1,19 @@
-# Datei: .forgejo/workflows/test.yml
-name: Runner Test
-
-on: [push]
-
 jobs:
-  hello:
+  build:
     runs-on: docker
-#    container:
-#      image: alpine:latest
+    container:
+      image: ubuntu:24.04
 
     steps:
-      - uses: https://code.forgejo.org/actions/checkout@v3
+      - name: Update & Install Dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y software-properties-common
+          add-apt-repository -y ppa:lely/ppa
+          apt-get update -y
+          apt-get install -y liblely-coapp-dev liblely-co-tools python3-dcf-tools
 
       - name: Test Runner
         run: |
-          echo "Forgejo runner is working!"
+          echo "Running in Ubuntu Noble Docker container"
           uname -a
-          echo "Repository contents:"
-          ls -la
-
