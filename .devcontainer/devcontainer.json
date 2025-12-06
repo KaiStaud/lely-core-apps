@@ -1,0 +1,32 @@
+{
+  "name": "C++ Devcontainer",
+  "image": "mcr.microsoft.com/devcontainers/cpp:ubuntu",
+
+  // Optional: zusätzliche Extensions im VS Code Container
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools"
+      ]
+    }
+  },
+
+  // Optional: automatische Features (z.B. CMake oder Git)
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+
+  // Optional: Mounts, falls du z. B. deine vcpkg-Cache teilen willst
+  "mounts": [],
+
+  // Optional: Container-Settings
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash"
+  },
+  "runArgs": [
+  "--network=host"
+]
+
+}
+
