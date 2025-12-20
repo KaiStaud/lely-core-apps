@@ -59,35 +59,37 @@ SupportedObjects=3
 3=0x1018
 
 [OptionalObjects]
-SupportedObjects=28
+SupportedObjects=30
 1=0x1003
 2=0x1005
 3=0x1006
 4=0x1007
-5=0x1014
-6=0x1015
-7=0x1016
-8=0x1017
-9=0x1019
-10=0x1028
-11=0x1029
-12=0x102A
-13=0x1400
-14=0x1600
-15=0x1800
-16=0x1A00
-17=0x1F25
-18=0x1F55
-19=0x1F80
-20=0x1F81
-21=0x1F82
-22=0x1F84
-23=0x1F85
-24=0x1F86
-25=0x1F87
-26=0x1F88
-27=0x1F89
-28=0x1F8A
+5=0x1012
+6=0x1013
+7=0x1014
+8=0x1015
+9=0x1016
+10=0x1017
+11=0x1019
+12=0x1028
+13=0x1029
+14=0x102A
+15=0x1400
+16=0x1600
+17=0x1800
+18=0x1A00
+19=0x1F25
+20=0x1F55
+21=0x1F80
+22=0x1F81
+23=0x1F82
+24=0x1F84
+25=0x1F85
+26=0x1F86
+27=0x1F87
+28=0x1F88
+29=0x1F89
+30=0x1F8A
 
 [ManufacturerObjects]
 SupportedObjects=6
@@ -133,6 +135,18 @@ ParameterName=Synchronous window length
 DataType=0x0007
 AccessType=rw
 DefaultValue=0
+
+[1012]
+ParameterName=COB-ID time stamp object
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000100
+
+[1013]
+ParameterName=High resolution time stamp
+DataType=0x0007
+AccessType=rw
+PDOMapping=1
 
 [1014]
 ParameterName=COB-ID EMCY
@@ -367,7 +381,7 @@ CompactSubObj=127
 
 [1F81Value]
 NrOfEntries=1
-2=0x00000005
+2=0x00000305
 
 [1F82]
 ParameterName=Request NMT
@@ -449,7 +463,7 @@ AccessType=const
 DefaultValue=1
 
 [2000sub1]
-ParameterName=slave_2: UNSIGNED32 sent from slave
+ParameterName=slave_2: UNSIGNED32 received by slave
 DataType=0x0007
 AccessType=rww
 PDOMapping=1
@@ -466,7 +480,7 @@ AccessType=const
 DefaultValue=1
 
 [2200sub1]
-ParameterName=slave_2: UNSIGNED32 received by slave
+ParameterName=slave_2: Statusword sent from slave
 DataType=0x0007
 AccessType=rwr
 PDOMapping=1
@@ -486,7 +500,7 @@ CompactSubObj=1
 
 [5A00Value]
 NrOfEntries=1
-1=0x40010020
+1=0x60400020
 
 [5C00]
 ParameterName=Remote RPDO number and node-ID
@@ -503,4 +517,4 @@ CompactSubObj=1
 
 [5E00Value]
 NrOfEntries=1
-1=0x40000020
+1=0x60410020

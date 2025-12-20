@@ -1,13 +1,6 @@
 #include <lely/ev/loop.hpp>
-#if _WIN32
-#include <lely/io2/win32/ixxat.hpp>
-#include <lely/io2/win32/poll.hpp>
-#elif defined(__linux__)
 #include <lely/io2/linux/can.hpp>
 #include <lely/io2/posix/poll.hpp>
-#else
-#error This file requires Windows or Linux.
-#endif
 #include <lely/io2/sys/io.hpp>
 #include <lely/io2/sys/sigset.hpp>
 #include <lely/io2/sys/timer.hpp>
@@ -15,9 +8,17 @@
 #include <lely/coapp/master.hpp>
 
 #include <iostream>
+#include <array>
 using namespace std::chrono_literals;
 using namespace lely;
 
+
+// error: SDO abort code 05040000 received on upload request of object 1000 (Device type) to node 02: SDO protocol timed out
+// error: SDO abort code 05040000 received on upload request of sub-object 1018:01 (Vendor-ID) to node 02: SDO protocol timed out
+// 
+constexpr uint16_t controlword = 0x6040;
+constexpr uint16_t statusword = 0x6041;
+constexpr uint16_t digital_inputs = 0x60FD;
 // This driver inherits from FiberDriver, which means that all CANopen event
 // callbacks, such as OnBoot, run as a task inside a "fiber" (or stackful
 // coroutine).
@@ -30,8 +31,9 @@ class MyDriver : public canopen::FiberDriver {
   // The 'st' parameter contains the last known NMT state of the slave
   // (typically pre-operational), 'es' the error code (0 on success), and 'what'
   // a description of the error, if any.
+
   void
-  OnBoot(canopen::NmtState /*st*/, char es,
+  OnBoot(canopen::NmtState , char es,
          const std::string& what) noexcept override {
     if (!es || es == 'L') {
       std::cout << "slave " << static_cast<int>(id()) << " booted sucessfully"
@@ -39,6 +41,7 @@ class MyDriver : public canopen::FiberDriver {
     } else {
       std::cout << "slave " << static_cast<int>(id())
                 << " failed to boot: " << what << std::endl;
+		exit(1);
     }
   }
 
@@ -62,11 +65,13 @@ class MyDriver : public canopen::FiberDriver {
       Wait(AsyncWrite<uint16_t>(0x1017, 0, 1000));
       // Configure the heartbeat consumer on the master.
       ConfigHeartbeat(2000ms);
-
-      // Reset object 4000:00 and 4001:00 on the slave to 0.
-      Wait(AsyncWrite<uint32_t>(0x4000, 0, 0));
-      Wait(AsyncWrite<uint32_t>(0x4001, 0, 0));
-
+      std::array<uint8_t,3> values{{0x6,0x7,0xF}};
+     for (auto i : values)
+     {
+       Wait(AsyncWrite<uint32_t>(controlword,0,i));
+      usleep(500000);
+//        AsyncRead(statusword,0, std::chrono::milliseconds(500));
+      }
       // Report success (empty error code).
       res({});
     } catch (canopen::SdoError& e) {
@@ -116,10 +121,6 @@ main() {
   // Initialize the I/O library. This is required on Windows, but a no-op on
   // Linux (for now).
   io::IoGuard io_guard;
-#if _WIN32
-  // Load vcinpl2.dll (or vcinpl.dll if CAN FD is disabled).
-  io::IxxatGuard ixxat_guard;
-#endif
   // Create an I/O context to synchronize I/O services during shutdown.
   io::Context ctx;
   // Create an platform-specific I/O polling instance to monitor the CAN bus, as
@@ -134,18 +135,10 @@ main() {
   // Create a timer using a monotonic clock, i.e., a clock that is not affected
   // by discontinuous jumps in the system time.
   io::Timer timer(poll, exec, CLOCK_MONOTONIC);
-#if _WIN32
-  // Create an IXXAT CAN controller and channel. The VCI requires us to
-  // explicitly specify the bitrate and restart the controller.
-  io::IxxatController ctrl(0, 0, io::CanBusFlag::NONE, 125000);
-  ctrl.restart();
-  io::IxxatChannel chan(ctx, exec);
-#elif defined(__linux__)
   // Create a virtual SocketCAN CAN controller and channel, and do not modify
   // the current CAN bus state or bitrate.
-  io::CanController ctrl("vcan0");
+  io::CanController ctrl("can0");
   io::CanChannel chan(poll, exec);
-#endif
   chan.open(ctrl);
 
   // Create a CANopen master with node-ID 1. The master is asynchronous, which

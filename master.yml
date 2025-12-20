@@ -1,0 +1,29 @@
+
+master:
+  node_id: 1
+  sync_period: 1000000 # us
+
+slave_2:
+  dcf: "cpp-slave-2.eds"
+  node_id: 2
+#  rpdo:
+#   1:
+#     enabled: true
+#     cob_id: auto
+#     transmission: 0x01
+#     inhibit_time: 0 # 100 us
+#     event_timer: 0 # ms
+#     mapping:
+#       - {index: 0x6041, sub_index: 0x00} # statusword
+
+#  tpdo:
+#    1:
+#      enabled: true
+#      cob_id: auto
+#      transmission: 0x01
+#      inhibit_time: 0 # 100 us
+#      event_timer: 0 # ms
+#      sync_start: 0
+#      mapping:
+#        - {index: 0x6040, sub_index: 0x00} # controlword
+

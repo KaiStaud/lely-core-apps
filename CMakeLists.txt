@@ -20,3 +20,19 @@ add_executable(slave slave.cpp)
 target_include_directories(slave PRIVATE ${LELY_INCLUDE_DIRS})
 target_link_libraries(slave PRIVATE ${LELY_LIBRARIES})
 target_compile_options(slave PRIVATE ${LELY_CFLAGS_OTHER})
+
+install(TARGETS master
+        RUNTIME DESTINATION bin)
+
+install(TARGETS slave
+        RUNTIME DESTINATION bin)
+
+# --- Configure-Task (früher: make dcf) ----------------------------------
+
+set (MASTER_YML master.yml)
+add_custom_target(
+    configure
+    COMMAND dcfgen -r ${MASTER_YML}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running dcfgen to generate DCF files..."
+)
