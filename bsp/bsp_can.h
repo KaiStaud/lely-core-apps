@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <linux/can.h>
+#include <lely/co/time.h>
+#include <lely/can/msg.h>
 
 /**
  * Öffnet ein CAN-Interface (z.B. "can0" oder "vcan0")
@@ -35,4 +37,6 @@ int can_receive(int sock, struct can_frame *frame);
  */
 void can_close(int sock);
 
+int on_can_send(const struct can_msg *msg, void *data);
+int can_recv(struct can_msg *ptr, size_t n);
 #endif /* CAN_COMM_H */

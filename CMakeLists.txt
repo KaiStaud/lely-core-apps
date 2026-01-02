@@ -10,10 +10,11 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LELY REQUIRED liblely-coapp)
 
 add_subdirectory(libcia402)
+add_subdirectory(callbacks)
 # Slave in C
 add_executable(slave bsp/bsp_can.c sdev.c ulog/ulog.c slave.c)
 target_include_directories(slave PRIVATE ${LELY_INCLUDE_DIRS})
-target_link_libraries(slave PRIVATE ${LELY_LIBRARIES} cia402)
+target_link_libraries(slave PRIVATE ${LELY_LIBRARIES} cia402 callbacks)
 target_compile_options(slave PRIVATE ${LELY_CFLAGS_OTHER})
 
 install(TARGETS slave
