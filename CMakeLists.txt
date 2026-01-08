@@ -20,4 +20,14 @@ target_compile_options(slave PRIVATE ${LELY_CFLAGS_OTHER})
 install(TARGETS slave
         RUNTIME DESTINATION bin)
 
+
+# Slave in C
+add_executable(masterc bsp/bsp_can.c master_sdev.c ulog/ulog.c master.c)
+target_include_directories(masterc PRIVATE ${LELY_INCLUDE_DIRS})
+target_link_libraries(masterc PRIVATE ${LELY_LIBRARIES} cia402 callbacks)
+target_compile_options(masterc PRIVATE ${LELY_CFLAGS_OTHER})
+
+install(TARGETS masterc
+        RUNTIME DESTINATION bin)
+
 add_subdirectory(apps)

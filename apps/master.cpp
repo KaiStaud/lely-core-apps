@@ -1,4 +1,5 @@
 #include <lely/ev/loop.hpp>
+#include <lely/ev/co_task.hpp>
 #if _WIN32
 #include <lely/io2/win32/ixxat.hpp>
 #include <lely/io2/win32/poll.hpp>
@@ -19,7 +20,8 @@
 #if _WIN32
 #include <thread>
 #endif
-
+#include <lely/ev/fiber_exec.hpp>
+#include <thread>
 using namespace std::chrono_literals;
 using namespace lely;
 
@@ -29,7 +31,30 @@ using namespace lely;
 class MyDriver : public canopen::FiberDriver {
  public:
   using FiberDriver::FiberDriver;
+  std::thread workerThread;
+  // Implements application.
+  void inputLoop()
+  {
+    while (true)  // Endlosschleife
+    {
+      std::string input;
 
+      // Input lesen
+      std::printf("Warte auf Eingabe\r\n");
+      std::getline(std::cin, input);
+      // Input ausgeben
+      std::printf("Eingabe: %s\r\n",input.c_str());
+      Wait(this->AsyncWrite<uint32_t>(0x6060, 0, 6));
+      //this->
+      //this->Wait(fut); // Crashes application, but is necessary to complete the upload.
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
+
+  void startWorker()
+  {
+    workerThread = std::thread(&MyDriver::inputLoop,this);
+  }
  private:
   // This function gets called when the boot-up process of the slave completes.
   // The 'st' parameter contains the last known NMT state of the slave
@@ -77,6 +102,13 @@ class MyDriver : public canopen::FiberDriver {
       Wait(AsyncWrite<uint32_t>(0x6040, 0, i));
       std::printf("Slave progressed to %04x\r\n",Wait(AsyncRead<uint32_t>(0x6041,0)));
     }
+      // Configure Homing
+      Wait(AsyncWrite<uint32_t>(0x6060, 0, 6));
+      Wait(AsyncWrite<uint32_t>(0x6098, 0, 1));
+      Wait(AsyncWrite<uint32_t>(0x609A, 0, 100));
+      Wait(AsyncWrite<uint32_t>(0x6099, 0, 300));
+    //  Wait(AsyncWrite<uint32_t>(0x6060, 0, 0xF6));
+
       // Report success (empty error code).
       res({});
     } catch (canopen::SdoError& e) {
@@ -122,15 +154,14 @@ class MyDriver : public canopen::FiberDriver {
   }
 };
 
-int
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   if (argc < 3)
   {
-    std::printf("usage: ./master <vcan0|can0> <somepath/master.dcf");
-    exit(1);
+    std::printf("usage: ./master <vcan0|can0> <somepath/master.dcf\r\”");
+   // exit(1);
   }
-  char* can_if=argv[1];
-  char* dcf=argv[2];
+  char* can_if="vcan0";//argv[1];
+  char* dcf="/home/kai/projects/canopen-controller/apps/master.dcf";//argv[2];
   std::printf("interface = %s, dcf = %s\r\n",can_if,dcf);
   // Initialize the I/O library. This is required on Windows, but a no-op on
   // Linux (for now).
@@ -172,15 +203,13 @@ main(int argc, char *argv[]) {
   // task on the event loop, instead of being invoked during the event
   // processing by the stack.
   canopen::AsyncMaster master(timer, chan, dcf, "", 1);
-
   // Create a driver for the slave with node-ID 2.
   MyDriver driver(exec, master, 2);
-
   // Create a signal handler.
   io::SignalSet sigset(poll, exec);
   // Watch for Ctrl+C or process termination.
   sigset.insert(SIGHUP);
-  sigset.insert(SIGINT);
+//  sigset.insert(SIGINT);
   sigset.insert(SIGTERM);
 
   // Submit a task to be executed when a signal is raised. We don't care which.
@@ -209,7 +238,6 @@ main(int argc, char *argv[]) {
 
   // Run the event loop until no tasks remain (or the I/O context is shut down).
   loop.run();
-
 #if _WIN32
   // Wait for the worker threads to finish.
   for (auto& worker : workers) worker.join();

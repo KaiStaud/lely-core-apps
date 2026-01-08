@@ -38,7 +38,7 @@ Nach Homing wird der Fault durchs übertragen des Controlwords zurücksgesetzt.
 
 | # | Schritt          | Objekt    | Value     | Spiegelobjekt | Access |
 |---|------------------|-----------|-----------|---------------|--------|
-| 1 | Homing aktivieren | 0x6040:00 | +6        | 0x6041        | SDO    |
+| 1 | Homing aktivieren | 0x6060:00 | +6        | 0x6061        | SDO    |
 | 2 | Profil einstellen | 0x6098:00 | -1        | -             | SDO    |
 | 3 | Beschleunigung   | 0x609A    | ...       | 0x6081        | SDO    |
 | 4 | Geschwindigkeit  | 0x6099    | ...       | 0x6083        | SDO    |

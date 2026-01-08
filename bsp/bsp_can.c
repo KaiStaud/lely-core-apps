@@ -108,7 +108,7 @@ int on_can_send(const struct can_msg *msg, void *data) {
         ulog_info("CAN_MAX_LEN < msg size");
     }
     int err = can_send(can_socket, can_id, msg->len, msg->data);
-    ulog_info("[CAN] tx: %s %4x [%i]", "vcan0", can_id, msg->len);
+//    ulog_info("[CAN] tx: %s %4x [%i]", "vcan0", can_id, msg->len);
 }
 
 int can_recv(struct can_msg *ptr, size_t n) {

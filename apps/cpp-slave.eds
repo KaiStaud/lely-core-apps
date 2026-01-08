@@ -49,7 +49,7 @@ SupportedObjects=3
 3=0x1018
 
 [OptionalObjects]
-SupportedObjects=13
+SupportedObjects=20
 1=0x1003
 2=0x1005
 3=0x1014
@@ -63,9 +63,16 @@ SupportedObjects=13
 11=0x1A00
 12=0x6040
 13=0x6041
+14=0x6098
+15=0x609A
+16=0x6081
+17=0x6099
+18=0x6083
+19=0x6060
+20=0x6061
+
 [ManufacturerObjects]
 SupportedObjects=0
-
 
 [1000]
 ParameterName=Device type
@@ -258,13 +265,56 @@ NrOfEntries=1
 1=0x60410020
 
 [6040]
-ParameterName=UNSIGNED32 received by slave
+ParameterName=Controlword
 DataType=0x0007
 AccessType=rww
 PDOMapping=1
 
 [6041]
-ParameterName=UNSIGNED32 sent from slave
+ParameterName=Statusword
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+[6060]
+ParameterName=Modes of Operation
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+[6061]
+ParameterName=Modes of Operation Display
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+
+[6098]
+ParameterName=Homing Profile
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+[6099]
+ParameterName=Homing Velocity
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+[609A]
+ParameterName=Homing Acceleration
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+[6081]
+ParameterName=Profile Acceleration
+DataType=0x0007
+AccessType=rwr
+PDOMapping=1
+
+[6083]
+ParameterName=Profile Velocity
 DataType=0x0007
 AccessType=rwr
 PDOMapping=1

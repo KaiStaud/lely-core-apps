@@ -10,7 +10,9 @@
 
 #include <assert.h>
 #include <time.h>
+#include <stdlib.h>
 #include <unistd.h> /* read(), close() */
+#include <pthread.h>
 
 #include "bsp/bsp_can.h"
 #include "libcia402/include/statemachine.h"
@@ -28,6 +30,48 @@ static inline long diff_ms(const struct timespec *a, const struct timespec *b) {
   return (a->tv_sec - b->tv_sec) * 1000L + (a->tv_nsec - b->tv_nsec) / 1000000L;
 }
 
+
+// Thread 2
+static void *homing_fx(void* val)
+{
+  co_dev_t *dev = (co_dev_t*) val;
+  ulog_info("Homing Loop erstellt");
+  // Wait for Mode of operation to be set to Homing
+  uint32_t mode=co_sub_get_val_u32(co_dev_find_sub(dev,0x6060,0));
+  while (mode != 6)
+  {
+    mode=co_sub_get_val_u32(co_dev_find_sub(dev,0x6060,0));
+  }
+  ulog_info("[Homing] Mode of Operation: Homing");
+  // Wait for Homing Profile to be configured
+  uint32_t homing_profile=co_sub_get_val_u32(co_dev_find_sub(dev,0x6098,0));
+  while (homing_profile != 1)
+  {
+    homing_profile=co_sub_get_val_u32(co_dev_find_sub(dev,0x6098,0));
+  }
+  ulog_info("[Homing] Homing Profile: Negative Position-Switch");
+
+  // Wait for homing "start"
+  while (mode != 0xF6)
+  {
+    mode=co_sub_get_val_u32(co_dev_find_sub(dev,0x6060,0));
+  }
+  ulog_info("[Homing] Start Homing");
+
+  // Verify acceleration and speed
+  ulog_info("[Homing] Acceleration=%lu, Velocity=%u",
+  co_sub_get_val_u32(co_dev_find_sub(dev,0x609A,0)),
+  co_sub_get_val_u32(co_dev_find_sub(dev,0x6099,0))
+);
+  while (1)
+  {
+    // Wait for stop conditions:
+    // Fault Reaction active
+    // GPIO active
+    // Software Limit reached
+    // Set "Homing attained", "Homing Permormed", "Target rea-ched"
+  }
+}
 int main(void) {
   ulog_topic_config(true);
   can_sock = can_open("vcan0");
@@ -91,6 +135,13 @@ int main(void) {
   co_nmt_on_sync(nmt, 1);
   co_nmt_set_sync_ind(nmt, sync_indication, p_sync_data);
 
+  // Threads
+  pthread_t homing_thread;
+  int rc = pthread_create( &homing_thread, NULL, &homing_fx, (void*)dev );
+  if( rc != 0 ) {
+    ulog_error("Konnte Thread 1 nicht erzeugen\n");
+    return EXIT_FAILURE;
+  }
   for (;;) {
     co_obj_t * obj = co_dev_find_obj(dev, 0x6040);
     uint32_t ctrl_word=co_sub_get_val_u32(co_dev_find_sub(dev,0x6040,0));
@@ -98,7 +149,7 @@ int main(void) {
     uint16_t statusword=get_statusword_lowbyte(get_state());
     obj = co_dev_find_obj(dev, 0x6041);
     co_obj_set_val(obj, 0x00,&statusword, sizeof(val));
-    ulog_info("[Main] : statusword = %04x, controlword %04x",statusword,ctrl_word);
+    //ulog_info("[Main] : statusword = %04x, controlword %04x",statusword,ctrl_word);
     // Update the CAN network clock.
     clock_gettime(CLOCK_MONOTONIC, &now);
     can_net_set_time(net, &now);

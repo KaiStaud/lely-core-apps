@@ -43,5 +43,5 @@ void tpdo_indication(co_tpdo_t *pdo, co_unsigned32_t ac, const void *ptr,
 }
 
 void sync_indication(co_nmt_t *nmt, co_unsigned8_t cnt, void *data) {
-    ulog_info("[NMT] : received sync indication for count %i", cnt);
+//    ulog_info("[NMT] : received sync indication for count %i", cnt);
 }
