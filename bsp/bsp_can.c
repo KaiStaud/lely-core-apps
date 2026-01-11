@@ -11,7 +11,6 @@
 
 #include <net/if.h>
 #include <linux/can/raw.h>
-#include "../ulog/ulog.h"
 int can_socket;
 int can_open(const char *ifname)
 {
@@ -100,15 +99,12 @@ int on_can_send(const struct can_msg *msg, void *data) {
     }
     if (msg->flags & CAN_FLAG_RTR) {
         can_id |= CAN_RTR_FLAG;
-        ulog_info("[CAN] tx: Id with added RTR-Flag");
     }
 
     /* Datenlänge prüfen */
     if (msg->len > CAN_MAX_LEN) {
-        ulog_info("CAN_MAX_LEN < msg size");
     }
     int err = can_send(can_socket, can_id, msg->len, msg->data);
-//    ulog_info("[CAN] tx: %s %4x [%i]", "vcan0", can_id, msg->len);
 }
 
 int can_recv(struct can_msg *ptr, size_t n) {

@@ -3,7 +3,6 @@
 //
 #include "co_hooks.h"
 #include <stdlib.h>
-#include "../ulog/ulog.h"
 #include <lely/co/nmt.h>
 void on_nmt_cs(co_nmt_t *nmt, co_unsigned8_t cs, void *data) {
   (void)data;

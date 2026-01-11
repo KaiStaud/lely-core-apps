@@ -1,5 +1,4 @@
-#include "ulog/ulog.h"
-
+#include "ulog.h"
 #include <lely/co/nmt.h>
 #include <lely/co/rpdo.h>
 #include <lely/co/tpdo.h>
@@ -35,31 +34,32 @@ static inline long diff_ms(const struct timespec *a, const struct timespec *b) {
 static void *homing_fx(void* val)
 {
   co_dev_t *dev = (co_dev_t*) val;
-  ulog_info("Homing Loop erstellt");
+  ulog_topic_info("Homing", "Homing Loop erstellt");
+  //ulog_info("[Homing] Homing Loop erstellt");
   // Wait for Mode of operation to be set to Homing
   uint32_t mode=co_sub_get_val_u32(co_dev_find_sub(dev,0x6060,0));
   while (mode != 6)
   {
     mode=co_sub_get_val_u32(co_dev_find_sub(dev,0x6060,0));
   }
-  ulog_info("[Homing] Mode of Operation: Homing");
+  ulog_topic_info("Homing","Mode of Operation: Homing");
   // Wait for Homing Profile to be configured
   uint32_t homing_profile=co_sub_get_val_u32(co_dev_find_sub(dev,0x6098,0));
   while (homing_profile != 1)
   {
     homing_profile=co_sub_get_val_u32(co_dev_find_sub(dev,0x6098,0));
   }
-  ulog_info("[Homing] Homing Profile: Negative Position-Switch");
+  ulog_topic_info("Homing" ,"Homing Profile: Negative Position-Switch");
 
   // Wait for homing "start"
   while (mode != 0xF6)
   {
     mode=co_sub_get_val_u32(co_dev_find_sub(dev,0x6060,0));
   }
-  ulog_info("[Homing] Start Homing");
+  ulog_topic_info("Homing","Start Homing");
 
   // Verify acceleration and speed
-  ulog_info("[Homing] Acceleration=%lu, Velocity=%u",
+  ulog_topic_info("Homing","Acceleration=%lu, Velocity=%u",
   co_sub_get_val_u32(co_dev_find_sub(dev,0x609A,0)),
   co_sub_get_val_u32(co_dev_find_sub(dev,0x6099,0))
 );
@@ -73,7 +73,11 @@ static void *homing_fx(void* val)
   }
 }
 int main(void) {
-  ulog_topic_config(true);
+  ulog_topic_add("Homing", ULOG_OUTPUT_ALL, ULOG_LEVEL_INFO);
+  ulog_topic_add("TPDO",ULOG_OUTPUT_ALL,ULOG_LEVEL_INFO);
+  ulog_topic_add("RPDO",ULOG_OUTPUT_ALL,ULOG_LEVEL_INFO);
+  ulog_topic_add("CAN",ULOG_OUTPUT_ALL,ULOG_LEVEL_INFO);
+
   can_sock = can_open("vcan0");
 
   can_net_t *net = can_net_create();
