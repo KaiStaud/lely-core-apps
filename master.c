@@ -33,39 +33,33 @@ static inline long diff_ms(const struct timespec *a, const struct timespec *b) {
   return (a->tv_sec - b->tv_sec) * 1000L + (a->tv_nsec - b->tv_nsec) / 1000000L;
 }
 
+void send_sdo(can_net_t *net, co_dev_t *dev,int idx,int val)
+{
+  co_csdo_t *csdo = co_csdo_create(net, dev, 1);
+  int value=val;
+  co_csdo_dn_val_req(csdo,idx,0,CO_DEFTYPE_UNSIGNED32,&value,NULL,NULL);
+  co_csdo_destroy(csdo);
+}
 void send_homing_sequence(can_net_t *net, co_dev_t *dev)
 {
-  //co_csdo_t *csdo = co_csdo_create(net, NULL, 2);
-  // Configure the slave to monitor the heartbeat of the master (node-ID 1)
-  // with a timeout of 2000 ms.
-/*
-  if (csdo_dn_value(net,dev,1,0x1016,0,(1 << 16) | 2000) !=0)
-  {
-    ulog_error("heartbeat observer sdo rejected");
-  }
-  */
 
-  ulog_info(" Configurintg Slave heartbeat");
-  int heartbeat_time=1000;
-  co_csdo_t *csdo = co_csdo_create(net, NULL, 2);
-  if (co_csdo_dn_val_req(csdo,0x1017,0,CO_DEFTYPE_UNSIGNED16,&heartbeat_time,NULL,NULL) != 0)
-  {
-    ulog_error("Failed to configure heartbeat time %s",errc2str(get_errc()));
-  }
-  co_csdo_destroy(csdo);
   for (int i=0;i<3;i++)
   {
+    co_csdo_t *csdo = co_csdo_create(net, dev, 1);
     const int vals[3]={6, 7, 0xF}; // Double-braces required in C++11 prior to
-    csdo_dn_value(net,dev,1,0x6040,0,vals[i]);
+    int value=vals[i];
+    co_csdo_dn_val_req(csdo,0x6040,0,CO_DEFTYPE_UNSIGNED32,&value,NULL,NULL);
+    co_csdo_destroy(csdo);
   }
 
   // Configure Homing
   void* data;
-  csdo_dn_value(net,dev,1,0x6060,0,0x6);
-  csdo_dn_value(net,dev,1,0x6098,0,0x1);
-  csdo_dn_value(net,dev,1,0x609A,0,100);
-  csdo_dn_value(net,dev,1,0x6099,0,250);
-  csdo_dn_value(net,dev,1,0x6060,0,0xF6);
+
+  send_sdo(net,dev,0x6060,0x6);
+  send_sdo(net,dev,0x6098,0x1);
+  send_sdo(net,dev,0x609A,100);
+  send_sdo(net,dev,0x6099,250);
+  send_sdo(net,dev,0x6060,0xF6);
 
 }
 
@@ -99,40 +93,22 @@ int main(int argc, char** argv) {
   // Create the CANopen NMT service.
   co_nmt_t *nmt = co_nmt_create(net, dev);
   assert(nmt);
+// Also sends 130 to Node 0;
   int rc =co_nmt_cs_ind(nmt, CO_NMT_CS_RESET_NODE);
   if (rc != 0)
   {
     ulog_error("Failed to reset node");
   }
+  co_nmt_cs_req(nmt,CO_NMT_CS_START,2);
+
+
+  //  │../../../src/co/nmt.c:1843: debug: NMT: sending command specifier 130 to node 0
+  //co_nmt_cs_req(nmt,CO_NMT_CS_RESET_COMM,0);
+
 //  co_nmt_set_cs_ind(nmt, &on_nmt_cs, NULL);
   //co_time_set_ind(co_nmt_get_time(nmt), &on_time, NULL);
 // RPDO_1 : 0x1800 + Mapping@ 0x1a00
-  co_tpdo_t *tpdo_1 = co_tpdo_create(net, dev, 1);
-  if (tpdo_1 == NULL) {
-    ulog_error("tdpo 1 not created");
-  }
-
-  if (co_tpdo_start(tpdo_1) != 0) {
-    ulog_error("could not start tpdo");
-  }
-// TPDO_1 : 0x1600 + Mapping@ 0x1600
-  co_rpdo_t *rpdo_1 = co_rpdo_create(net, dev, 1);
-    if (rpdo_1 == NULL) {
-      ulog_error("rdpo 1 not created");
-    }
-
-  if (co_rpdo_start(rpdo_1) != 0) {
-    ulog_error("could not start rpdo");
-  }
-
-  if (co_rpdo_sync(rpdo_1, 1) != 0) {
-    ulog_error("rpdo could not be configured with sync");
-  }
-
-  if (co_tpdo_sync(tpdo_1, 1) != 0) {
-   ulog_error("sync service not working");
-  }  co_nmt_on_sync(nmt, 1);
-
+/*
   co_obj_t * obj = co_dev_find_obj(dev, 0x1017);
   uint16_t statusword=500;
   co_obj_set_val(obj, 0x00,&statusword, sizeof(statusword));
@@ -143,7 +119,19 @@ if (rc !=0)
   ulog_error("Failed to send configuration %s",errc2str(get_errc()));
 }
   co_nmt_cs_req(nmt,CO_NMT_CS_START,2);
-//  co_nmt_boot_req(nmt,2,1000);
+  if (co_nmt_boot_req(nmt,2,1000) != 0)
+  {
+    ulog_info("Boot request returned %s", errc2str(get_errc()));
+  }
+  if (co_nmt_is_booting(nmt,2))
+  {
+    ulog_info("Slave is still booting");
+  }
+  else
+  {
+    ulog_info("Slave already booting / not booting");
+  }
+*/
 //  co_nmt_set_sync_ind(nmt,debug_sync_indication,NULL);
   for (;;) {
     // Update the CAN network clock.
