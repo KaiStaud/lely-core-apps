@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <unistd.h> /* read(), close() */
 #include <pthread.h>
+#include <lely/co/dcf.h>
 
 #include "bsp/bsp_can.h"
 #include "libcia402/include/statemachine.h"
@@ -72,7 +73,20 @@ static void *homing_fx(void* val)
     // Set "Homing attained", "Homing Permormed", "Target rea-ched"
   }
 }
-int main(void) {
+
+void on_time_cb(co_time_t *time, const struct timespec *tp, void *data) {
+  (void)time;
+  (void)data;
+
+  // Update the wall clock, _not_ the monotonic clock used by the CAN
+  // network.
+  clock_settime(CLOCK_REALTIME, tp);
+}
+int main(int argc,char **argv) {
+
+  char* can_if=argv[1];
+  char* dcf=argv[2];
+  printf("interface = %s, dcf = %s\r\n",can_if,dcf);
   ulog_topic_add("Homing", ULOG_OUTPUT_ALL, ULOG_LEVEL_INFO);
   ulog_topic_add("TPDO",ULOG_OUTPUT_ALL,ULOG_LEVEL_INFO);
   ulog_topic_add("RPDO",ULOG_OUTPUT_ALL,ULOG_LEVEL_INFO);
@@ -88,19 +102,15 @@ int main(void) {
   struct timespec last = {0, 0};
   struct timespec tx_time = {0, 0};
 
-  clock_gettime(CLOCK_MONOTONIC, &now);
+//  clock_gettime(CLOCK_MONOTONIC, &now);
+//  can_net_set_time(net, &now;
+  timespec_get(&now, TIME_UTC);
   can_net_set_time(net, &now);
 
+#if USE_SDEV
   // Create a dynamic object dictionary from the static object dictionary.
   co_dev_t *dev = co_dev_create_from_sdev(&lpc17xx_sdev);
-  assert(dev);
-  // Create the CANopen NMT service.
-  co_nmt_t *nmt = co_nmt_create(net, dev);
-  assert(nmt);
 
-  co_nmt_cs_ind(nmt, CO_NMT_CS_RESET_NODE);
-  co_nmt_set_cs_ind(nmt, &on_nmt_cs, NULL);
-  co_time_set_ind(co_nmt_get_time(nmt), &on_time, NULL);
 // RPDO_1 : 0x1800 + Mapping@ 0x1a00
   co_tpdo_t *tpdo_1 = co_tpdo_create(net, dev, 1);
   if (tpdo_1 == NULL) {
@@ -128,16 +138,30 @@ int main(void) {
     co_rpdo_set_ind(rpdo_1, my_rpdo_indication, pdata);
 
   void *p_tx_data;
-  void *p_sync_data;
   if (co_tpdo_sync(tpdo_1, 1) != 0) {
    trace("sync service not working");
   }
   co_tpdo_set_ind(tpdo_1, tpdo_indication, p_tx_data);
+
+#else
+  co_dev_t *dev = co_dev_create_from_dcf_file(dcf);
+#endif
+  assert(dev);
+  // Create the CANopen NMT service.
+  co_nmt_t *nmt = co_nmt_create(net, dev);
+  assert(nmt);
+  co_time_t *time = co_time_create(net,dev);
+  ulog_error("%s",errc2str(get_errc()));
+  assert(time);
+
+  co_nmt_cs_ind(nmt, CO_NMT_CS_RESET_NODE);
+  co_nmt_set_cs_ind(nmt, &on_nmt_cs, NULL);
   uint32_t val = 0;
   co_obj_t *obj = co_dev_find_obj(dev, 0x6040);
   co_obj_set_val(obj, 0x00, &val, sizeof(val));
   co_nmt_on_sync(nmt, 1);
-  co_nmt_set_sync_ind(nmt, sync_indication, p_sync_data);
+  co_nmt_set_sync_ind(nmt, sync_indication, NULL);
+  co_time_set_ind(co_nmt_get_time(nmt), &on_time_cb, NULL);
 
   // Threads
   pthread_t homing_thread;
@@ -155,9 +179,10 @@ int main(void) {
     co_obj_set_val(obj, 0x00,&statusword, sizeof(val));
     //ulog_info("[Main] : statusword = %04x, controlword %04x",statusword,ctrl_word);
     // Update the CAN network clock.
-    clock_gettime(CLOCK_MONOTONIC, &now);
+//    clock_gettime(CLOCK_MONOTONIC, &now);
+//    can_net_set_time(net, &now);
+    timespec_get(&now, TIME_UTC);
     can_net_set_time(net, &now);
-
     // Process any received CAN frames.
     struct can_msg msg;
     int n_frames = can_recv(&msg, 1);

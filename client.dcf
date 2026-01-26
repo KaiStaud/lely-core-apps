@@ -59,7 +59,7 @@ SupportedObjects=3
 3=0x1018
 
 [OptionalObjects]
-SupportedObjects=29
+SupportedObjects=31
 1=0x1003
 2=0x1005
 3=0x1006
@@ -89,6 +89,8 @@ SupportedObjects=29
 27=0x1F89
 28=0x1F8A
 29=0x1280
+30=0x1012
+31=0x1013
 
 [ManufacturerObjects]
 SupportedObjects=6
@@ -134,6 +136,17 @@ ParameterName=Synchronous window length
 DataType=0x0007
 AccessType=rw
 DefaultValue=0
+
+[1012]
+ParameterName=COB-ID time stamp object
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000100
+
+[1013]
+ParameterName=High resolution time stamp
+DataType=0x0007
+AccessType=rw
 
 [1014]
 ParameterName=COB-ID EMCY

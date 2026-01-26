@@ -11,7 +11,6 @@
 
 #include <lely/co/time.h>
 #include <lely/util/diag.h>
-
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -33,6 +32,21 @@ static inline long diff_ms(const struct timespec *a, const struct timespec *b) {
   return (a->tv_sec - b->tv_sec) * 1000L + (a->tv_nsec - b->tv_nsec) / 1000000L;
 }
 
+void cfg_indication(co_nmt_t *nmt, co_unsigned8_t id, co_unsigned8_t st, char es,void *data)
+{
+
+  ulog_info("NMT: slave %d finished booting with error status %c", id,
+      es ? es : '0');
+
+}
+void on_time_cb(co_time_t *time, const struct timespec *tp, void *data) {
+  (void)time;
+  (void)data;
+
+  // Update the wall clock, _not_ the monotonic clock used by the CAN
+  // network.
+  clock_settime(CLOCK_REALTIME, tp);
+}
 void send_sdo(can_net_t *net, co_dev_t *dev,int idx,int val)
 {
   co_csdo_t *csdo = co_csdo_create(net, dev, 1);
@@ -42,6 +56,10 @@ void send_sdo(can_net_t *net, co_dev_t *dev,int idx,int val)
 }
 void send_homing_sequence(can_net_t *net, co_dev_t *dev)
 {
+    co_csdo_t *csdo = co_csdo_create(net, dev, 1);
+    const int hb_time=500; // Double-braces required in C++11 prior to
+    co_csdo_dn_val_req(csdo,0x1017,0,CO_DEFTYPE_UNSIGNED16,&hb_time,NULL,NULL);
+    co_csdo_destroy(csdo);
 
   for (int i=0;i<3;i++)
   {
@@ -93,32 +111,47 @@ int main(int argc, char** argv) {
   // Create the CANopen NMT service.
   co_nmt_t *nmt = co_nmt_create(net, dev);
   assert(nmt);
-// Also sends 130 to Node 0;
-  int rc =co_nmt_cs_ind(nmt, CO_NMT_CS_RESET_NODE);
+  co_time_t *time = co_time_create(net,dev);
+  ulog_error("%s",errc2str(get_errc()));
+  assert(time);
+  co_time_set_ind(time, &on_time_cb, NULL);
+
+  co_obj_t * obj = co_dev_find_obj(dev, 0x1017);
+  uint16_t hb_time=500;
+  co_obj_set_val(obj, 0x00,&hb_time, sizeof(hb_time));
+  obj = co_dev_find_obj(dev, 0x1016);
+  co_obj_set_val(obj, 0x00,&hb_time, sizeof(hb_time));
+  co_dev_cfg_hb(dev,0,0);
+  co_dev_cfg_hb(dev,1,0);
+  // Also sends 130 to Node 0;
+  int rc =co_nmt_cs_ind(nmt, CO_NMT_CS_RESET_NODE); //CO_NMT_CS_RESET_NODE
   if (rc != 0)
   {
     ulog_error("Failed to reset node");
   }
+//S  co_nmt_cs_req(nmt,CO_NMT_CS_START,2);
+// co_nmt_set_cfg_ind(nmt,cfg_indication,NULL);
+co_nmt_set_boot_ind( nmt,cfg_indication,NULL);
   co_nmt_cs_req(nmt,CO_NMT_CS_START,2);
-
-
-  //  │../../../src/co/nmt.c:1843: debug: NMT: sending command specifier 130 to node 0
-  //co_nmt_cs_req(nmt,CO_NMT_CS_RESET_COMM,0);
-
-//  co_nmt_set_cs_ind(nmt, &on_nmt_cs, NULL);
-  //co_time_set_ind(co_nmt_get_time(nmt), &on_time, NULL);
-// RPDO_1 : 0x1800 + Mapping@ 0x1a00
-/*
-  co_obj_t * obj = co_dev_find_obj(dev, 0x1017);
-  uint16_t statusword=500;
-  co_obj_set_val(obj, 0x00,&statusword, sizeof(statusword));
-
+  if (co_nmt_boot_req(nmt,2,1000) != 0)
+  {
+    ulog_info("Boot request returned %s", errc2str(get_errc()));
+  }
+  if (co_nmt_is_booting(nmt,2))
+  {
+    ulog_info("Slave is still booting");
+  }
+  else
+  {
+    ulog_info("Slave already booting / not booting");
+  }
   rc = co_nmt_cfg_req(nmt,2,1000,NULL,NULL);
 if (rc !=0)
 {
   ulog_error("Failed to send configuration %s",errc2str(get_errc()));
 }
   co_nmt_cs_req(nmt,CO_NMT_CS_START,2);
+/*
   if (co_nmt_boot_req(nmt,2,1000) != 0)
   {
     ulog_info("Boot request returned %s", errc2str(get_errc()));
