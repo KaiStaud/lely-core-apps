@@ -3,3 +3,4 @@ cmake-build-debug
 .vscode
 master
 slave
+apps/slave_2.bin

@@ -24,12 +24,3 @@ target_compile_options(slavecpp PRIVATE ${LELY_CFLAGS_OTHER})
 
 install(TARGETS slavecpp
         RUNTIME DESTINATION bin)
-
-
-set (MASTER_YML cpp-tutorial.yml)
-add_custom_target(
-    configure
-    COMMAND dcfgen -r ${MASTER_YML}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running dcfgen to generate DCF files..."
-)

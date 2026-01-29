@@ -9,20 +9,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -g -O2")
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LELY REQUIRED liblely-coapp)
 
-add_executable(master master.cpp )
-target_include_directories(master PRIVATE ${LELY_INCLUDE_DIRS})
-target_link_libraries(master PRIVATE ${LELY_LIBRARIES})
-target_compile_options(master PRIVATE ${LELY_CFLAGS_OTHER})
+add_executable(client master.cpp )
+target_include_directories(client PRIVATE ${LELY_INCLUDE_DIRS})
+target_link_libraries(client PRIVATE ${LELY_LIBRARIES})
+target_compile_options(client PRIVATE ${LELY_CFLAGS_OTHER})
 
-install(TARGETS master
+install(TARGETS client
         RUNTIME DESTINATION bin)
 
-add_executable(slavecpp slave.cpp )
-target_include_directories(slavecpp PRIVATE ${LELY_INCLUDE_DIRS})
-target_link_libraries(slavecpp PRIVATE ${LELY_LIBRARIES})
-target_compile_options(slavecpp PRIVATE ${LELY_CFLAGS_OTHER})
+add_executable(device slave.cpp )
+target_include_directories(device PRIVATE ${LELY_INCLUDE_DIRS})
+target_link_libraries(device PRIVATE ${LELY_LIBRARIES})
+target_compile_options(device PRIVATE ${LELY_CFLAGS_OTHER})
 
-install(TARGETS slavecpp
+install(TARGETS device
         RUNTIME DESTINATION bin)
 
 

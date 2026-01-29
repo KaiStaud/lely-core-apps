@@ -27,13 +27,5 @@ target_compile_definitions(
 
 install(TARGETS slave
         RUNTIME DESTINATION bin)
-
-add_executable(masterc bsp/bsp_can.c master_sdev.c master.c)
-target_include_directories(masterc PRIVATE ${LELY_INCLUDE_DIRS})
-target_link_libraries(masterc PRIVATE ${LELY_LIBRARIES} cia402 callbacks microlog::microlog osal_canopen)
-target_compile_options(masterc PRIVATE ${LELY_CFLAGS_OTHER})
-
-install(TARGETS masterc
-        RUNTIME DESTINATION bin)
-
 add_subdirectory(apps)
+add_subdirectory(examples)
