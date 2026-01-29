@@ -1,14 +1,7 @@
 #include <lely/ev/loop.hpp>
 #include <lely/ev/co_task.hpp>
-#if _WIN32
-#include <lely/io2/win32/ixxat.hpp>
-#include <lely/io2/win32/poll.hpp>
-#elif defined(__linux__)
 #include <lely/io2/linux/can.hpp>
 #include <lely/io2/posix/poll.hpp>
-#else
-#error This file requires Windows or Linux.
-#endif
 #include <lely/io2/sys/io.hpp>
 #include <lely/io2/sys/sigset.hpp>
 #include <lely/io2/sys/timer.hpp>
@@ -17,9 +10,6 @@
 
 #include <iostream>
 #include <array>
-#if _WIN32
-#include <thread>
-#endif
 #include <lely/ev/fiber_exec.hpp>
 #include <thread>
 using namespace std::chrono_literals;
@@ -80,19 +70,16 @@ class MyDriver : public canopen::FiberDriver {
   void
   OnConfig(std::function<void(std::error_code ec)> res) noexcept override {
     try {
-      // Perform a few SDO write requests to configure the slave. The
-      // AsyncWrite() function returns a future which becomes ready once the
-      // request completes, and the Wait() function suspends the coroutine for
-      // this task until the future is ready.
+      Post(&MyDriver::PdoEvent, this);
 
       // Configure the slave to monitor the heartbeat of the master (node-ID 1)
       // with a timeout of 2000 ms.
-      Wait(AsyncWrite<uint32_t>(0x1016, 1, (1 << 16) | 2000));
+//      Wait(AsyncWrite<uint32_t>(0x1016, 1, (1 << 16) | 2000));
       // Configure the slave to produce a heartbeat every 1000 ms.
-      Wait(AsyncWrite<uint16_t>(0x1017, 0, 1000));
+//      Wait(AsyncWrite<uint16_t>(0x1017, 0, 1000));
       // Configure the heartbeat consumer on the master.
-      ConfigHeartbeat(2000ms);
-
+//      ConfigHeartbeat(2000ms);
+/*
       // Reset object 4000:00 and 4001:00 on the slave to 0.
       Wait(AsyncWrite<uint32_t>(0x6041, 0, 0));
 
@@ -108,7 +95,7 @@ class MyDriver : public canopen::FiberDriver {
       Wait(AsyncWrite<uint32_t>(0x609A, 0, 100));
       Wait(AsyncWrite<uint32_t>(0x6099, 0, 300));
     //  Wait(AsyncWrite<uint32_t>(0x6060, 0, 0xF6));
-
+*/
       // Report success (empty error code).
       res({});
     } catch (canopen::SdoError& e) {
@@ -123,12 +110,14 @@ class MyDriver : public canopen::FiberDriver {
   void
   OnDeconfig(std::function<void(std::error_code ec)> res) noexcept override {
     try {
-      // Disable the heartbeat consumer on the master.
-      ConfigHeartbeat(0ms);
-      // Disable the heartbeat producer on the slave.
-      Wait(AsyncWrite<uint16_t>(0x1017, 0, 0));
-      // Disable the heartbeat consumer on the slave.
-      Wait(AsyncWrite<uint32_t>(0x1016, 1, 0));
+
+      // Configure the slave to monitor the heartbeat of the master (node-ID 1)
+      // with a timeout of 2000 ms.
+  //    Wait(AsyncWrite<uint32_t>(0x1016, 1, (1 << 16) | 2000));
+      // Configure the slave to produce a heartbeat every 1000 ms.
+  //    Wait(AsyncWrite<uint16_t>(0x1017, 0, 1000));
+      // Configure the heartbeat consumer on the master.
+      //ConfigHeartbeat(2000ms);
       res({});
     } catch (canopen::SdoError& e) {
       res(e.code());
@@ -152,24 +141,39 @@ class MyDriver : public canopen::FiberDriver {
       std::printf("Statusword = %04x, Sending Controlword %04x to slave\r\n",val,0xF);
     }
   }
+  void PdoEvent() noexcept {
+    while (true) {
+//        tpdo_mapped[0x4000][0] = value;
+//        master.TpdoEvent(1);
+      std::printf("Hello world\r\n");
+      // Configure Homing
+      Wait(AsyncWait(duration(std::chrono::milliseconds(4000))));
+      Wait(AsyncWrite<uint32_t>(0x6060, 0, 6));
+      Wait(AsyncWrite<uint32_t>(0x6098, 0, 1));
+      Wait(AsyncWrite<uint32_t>(0x609A, 0, 100));
+      Wait(AsyncWrite<uint32_t>(0x6099, 0, 300));
+      Wait(AsyncWrite<uint32_t>(0x6060, 0, 0xF6));
+      while (1)
+      {
+        Wait(AsyncWait(duration(std::chrono::milliseconds(10000))));
+      }
+      }
+  }
+
 };
 
 int main(int argc, char *argv[]) {
   if (argc < 3)
   {
-    std::printf("usage: ./master <vcan0|can0> <somepath/master.dcf\r\”");
+    std::printf("usage: ./master <vcan0|can0> <somepath/master.dcf\r\n”");
    // exit(1);
   }
-  char* can_if="vcan0";//argv[1];
-  char* dcf="/home/kai/projects/canopen-controller/apps/master.dcf";//argv[2];
+  char* can_if=argv[1];
+  char* dcf=argv[2];
   std::printf("interface = %s, dcf = %s\r\n",can_if,dcf);
   // Initialize the I/O library. This is required on Windows, but a no-op on
   // Linux (for now).
   io::IoGuard io_guard;
-#if _WIN32
-  // Load vcinpl2.dll (or vcinpl.dll if CAN FD is disabled).
-  io::IxxatGuard ixxat_guard;
-#endif
   // Create an I/O context to synchronize I/O services during shutdown.
   io::Context ctx;
   // Create an platform-specific I/O polling instance to monitor the CAN bus, as
@@ -184,18 +188,10 @@ int main(int argc, char *argv[]) {
   // Create a timer using a monotonic clock, i.e., a clock that is not affected
   // by discontinuous jumps in the system time.
   io::Timer timer(poll, exec, CLOCK_MONOTONIC);
-#if _WIN32
-  // Create an IXXAT CAN controller and channel. The VCI requires us to
-  // explicitly specify the bitrate and restart the controller.
-  io::IxxatController ctrl(0, 0, io::CanBusFlag::NONE, 125000);
-  ctrl.restart();
-  io::IxxatChannel chan(ctx, exec);
-#elif defined(__linux__)
   // Create a virtual SocketCAN CAN controller and channel, and do not modify
   // the current CAN bus state or bitrate.
   io::CanController ctrl(can_if);
   io::CanChannel chan(poll, exec);
-#endif
   chan.open(ctrl);
 
   // Create a CANopen master with node-ID 1. The master is asynchronous, which
@@ -228,20 +224,7 @@ int main(int argc, char *argv[]) {
   // node' command.
   master.Reset();
 
-#if _WIN32
-  // Create two worker threads to ensure the blocking canChannelReadMessage()
-  // and canChannelSendMessage() used by the IXXAT CAN channel do not hold up
-  // the event loop.
-  std::thread workers[] = {std::thread([&]() { loop.run(); }),
-                           std::thread([&]() { loop.run(); })};
-#endif
-
   // Run the event loop until no tasks remain (or the I/O context is shut down).
   loop.run();
-#if _WIN32
-  // Wait for the worker threads to finish.
-  for (auto& worker : workers) worker.join();
-#endif
-
   return 0;
 }
