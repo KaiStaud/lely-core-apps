@@ -1,11 +1,12 @@
 Dump von Lely-Beispiel Code "PDO Ping Pong":
+```
  (000.558368)  vcan0  080   [0]           <-- Sync        
  (000.000241)  vcan0  182   [4]  00 00 00 00      <-- TPDO 1 von Node-ID 2 an Master
  (000.000183)  vcan0  202   [4]  00 00 00 00      <-- RPDO 1 von Master an Node-ID 2
  (000.441198)  vcan0  702   [1]  05      <-- heartbeat + NMT State OP von Node-ID 2
-
+```
 Dump von eigener Application:
-
+```
  (000.026656)  can0  702   [1]  00 <--- Slave 2 Boot-Up
  (000.001688)  can0  602   [8]  40 00 10 00 00 00 00 00
  (000.030128)  can0  582   [8]  43 00 10 00 00 00 00 00
@@ -31,3 +32,17 @@ Dump von eigener Application:
  (000.682877)  can0  080   [0] 
  (000.000827)  can0  202   [4]  00 00 00 00 <-- RPDO 1 von Master an Node-ID 2
  (000.106212)  can0  702   [1]  05 <-- heartbeat + NMT State OP von Node-ID 2
+```
+
+Ausgaben von apps/master.cpp zusammen mit STM32
+Slave:
+NMT: heartbeat time out occurred for node 1   
+EMCY: 8130 11
+NMT: communication error indicated
+
+Slave Configuration:
+- Hearbeat Consumer: Timeout 2000ms, Monitor Node 1 `Wait(AsyncWrite<uint32_t>(0x1016, 1, (1 << 16) | 2000));`
+- Eigener Heatbeat: Producer mit 1000ms  `Wait(AsyncWrite<uint16_t>(0x1017, 0, 1000));`
+
+Master Konfiguration:
+-  Consumer: `ConfigHeartbeat(2000ms);`
